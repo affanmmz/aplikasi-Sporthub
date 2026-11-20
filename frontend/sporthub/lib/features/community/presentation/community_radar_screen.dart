@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_typography.dart';
+import 'create_community_screen.dart';
 
 class CommunityRadarScreen extends StatelessWidget {
   const CommunityRadarScreen({super.key});
@@ -25,7 +26,10 @@ class CommunityRadarScreen extends StatelessWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                   onPressed: () {
-                    // Navigasi ke layar Buat Komunitas (POST /communities)
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CreateCommunityScreen()),
+                    );
                   },
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Buat'),
@@ -44,7 +48,6 @@ class CommunityRadarScreen extends StatelessWidget {
                     _buildRadarRing(300, '3 KM'),
                     _buildRadarRing(200, '2 KM'),
                     _buildRadarRing(100, '1 KM'),
-                    // Titik pengguna di tengah
                     Container(
                       width: 22,
                       height: 22,
@@ -54,13 +57,11 @@ class CommunityRadarScreen extends StatelessWidget {
                         border: Border.all(color: Colors.white, width: 3),
                       ),
                     ),
-                    // Pin Komunitas 1
                     Positioned(
                       top: 45,
                       right: 55,
                       child: _buildCommunityPin('Futsal Malam SBY', '1.4 km'),
                     ),
-                    // Pin Komunitas 2
                     Positioned(
                       bottom: 60,
                       left: 45,
@@ -117,7 +118,9 @@ class CommunityRadarScreen extends StatelessWidget {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       onPressed: () {
-                        // POST /api/v1/communities/:id/join
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Berhasil bergabung ke Futsal Malam SBY!')),
+                        );
                       },
                       child: Text('Gabung Komunitas', style: AppTypography.labelButton),
                     ),

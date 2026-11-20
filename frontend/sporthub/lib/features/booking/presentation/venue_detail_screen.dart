@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/providers/app_state_provider.dart';
 import '../../../core/utils/currency_formatter.dart';
 import 'eticket_screen.dart';
 
-class VenueDetailScreen extends StatefulWidget {
+class VenueDetailScreen extends ConsumerStatefulWidget {
   const VenueDetailScreen({super.key});
 
   @override
-  State<VenueDetailScreen> createState() => _VenueDetailScreenState();
+  ConsumerState<VenueDetailScreen> createState() => _VenueDetailScreenState();
 }
 
-class _VenueDetailScreenState extends State<VenueDetailScreen> {
+class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
   final int _courtPricePerHour = 120000;
-  final List<String> _timeSlots = ['18:00', '19:00', '20:00', '21:00', '22:00'];
-  final Set<String> _bookedSlots = {'19:00'};
-  final Set<String> _selectedSlots = {'20:00'};
+  final _timeSlots = ['18:00', '19:00', '20:00', '21:00', '22:00'];
+  final _bookedSlots = {'19:00'};
+  final _selectedSlots = {'20:00'};
 
   final _equipments = [
     {'id': 'eq-1', 'name': 'Bola Futsal Match', 'price': 25000, 'stock': 4, 'qty': 0},
@@ -209,12 +211,25 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             .where((e) => (e['qty'] as int) > 0)
                             .map((e) => '${e['qty']}x ${e['name']}')
                             .toList();
+                        final timeText = '${_selectedSlots.join(', ')} WIB (${_selectedSlots.length} Jam)';
+                        final code = 'SH-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+
+                        ref.read(bookingListProvider.notifier).addBooking({
+                          'bookingCode': code,
+                          'venueName': 'ARENA SPORT CENTER',
+                          'courtName': 'Lapangan A · Vinyl Standar FIFA',
+                          'dateText': 'Jumat, 20 Nov 2026',
+                          'timeSlot': timeText,
+                          'rentedEquipments': selectedItems,
+                          'totalPaid': _totalAmount,
+                        });
 
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => ETicketScreen(
-                              timeSlot: '${_selectedSlots.join(', ')} WIB (${_selectedSlots.length} Jam)',
+                              bookingCode: code,
+                              timeSlot: timeText,
                               rentedEquipments: selectedItems,
                               totalPaid: _totalAmount,
                             ),

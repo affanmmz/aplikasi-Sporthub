@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/providers/app_state_provider.dart';
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
-  final Set<String> _selectedSports = {'Futsal'};
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+  final _selectedSports = {'Futsal'};
   String _selectedLevel = 'Menengah';
 
-  final List<String> _sports = ['Futsal', 'Badminton', 'Mini Soccer', 'Basket', 'Padel'];
-  final List<String> _levels = ['Pemula', 'Menengah', 'Mahir'];
+  final _sports = ['Futsal', 'Badminton', 'Mini Soccer', 'Basket', 'Padel'];
+  final _levels = ['Pemula', 'Menengah', 'Mahir'];
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +40,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
               const SizedBox(height: 28),
 
-              // Pilih Cabang Olahraga
               Text('OLAHRAGA FAVORIT', style: AppTypography.displayMedium),
               const SizedBox(height: 12),
               Wrap(
@@ -72,7 +73,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
               const SizedBox(height: 28),
 
-              // Pilih Level Bermain
               Text('LEVEL BERMAIN', style: AppTypography.displayMedium),
               const SizedBox(height: 12),
               Row(
@@ -112,7 +112,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     foregroundColor: AppColors.textWhite,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  onPressed: () => context.go('/login'),
+                  onPressed: () {
+                    ref.read(userProfileProvider.notifier).updatePreferences(
+                          _selectedSports.toList(),
+                          _selectedLevel,
+                        );
+                    context.go('/login');
+                  },
                   child: Text('Mulai Sekarang', style: AppTypography.labelButton),
                 ),
               ),

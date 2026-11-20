@@ -1,19 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/providers/app_state_provider.dart';
+import 'create_challenge_screen.dart';
 
-class ChallengeBoardScreen extends StatefulWidget {
+class ChallengeBoardScreen extends ConsumerStatefulWidget {
   const ChallengeBoardScreen({super.key});
 
   @override
-  State<ChallengeBoardScreen> createState() => _ChallengeBoardScreenState();
+  ConsumerState<ChallengeBoardScreen> createState() => _ChallengeBoardScreenState();
 }
 
-class _ChallengeBoardScreenState extends State<ChallengeBoardScreen> {
-  bool _isOpponentTab = true; // true = opponent (lawan), false = teammate (rekan)
+class _ChallengeBoardScreenState extends ConsumerState<ChallengeBoardScreen> {
+  bool _isOpponentTab = true;
 
   @override
   Widget build(BuildContext context) {
+    final allChallenges = ref.watch(challengeListProvider);
+    final filteredChallenges = allChallenges
+        .where((item) => (item['isOpponent'] as bool) == _isOpponentTab)
+        .toList();
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -32,7 +40,10 @@ class _ChallengeBoardScreenState extends State<ChallengeBoardScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                   onPressed: () {
-                    // POST /api/v1/challenges
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CreateChallengeScreen()),
+                    );
                   },
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Posting'),
@@ -41,7 +52,6 @@ class _ChallengeBoardScreenState extends State<ChallengeBoardScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Switcher Tab: Cari Lawan vs Cari Rekan
             Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
@@ -83,77 +93,94 @@ class _ChallengeBoardScreenState extends State<ChallengeBoardScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Daftar Tantangan (GET /api/v1/challenges)
             Expanded(
-              child: ListView.separated(
-                itemCount: 3,
-                separatorBuilder: (_, __) => const SizedBox(height: 14),
-                itemBuilder: (context, index) {
-                  return Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: AppColors.cardSurface,
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'KAMIS, 20 NOV · 20:00 WIB',
-                              style: AppTypography.displayMedium.copyWith(fontSize: 20, color: AppColors.accentOrange),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: AppColors.background,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Text(
-                                'Menengah', // enum: intermediate -> Menengah
-                                style: TextStyle(color: AppColors.textWhite, fontSize: 12, fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _isOpponentTab ? 'Garuda Futsal FC' : 'Butuh 2 Pemain Badminton Ganda',
-                          style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text('Futsal · Arena Sport Center (1.5 km)', style: AppTypography.bodyMedium),
-                        const SizedBox(height: 6),
-                        Text(
-                          '"Main santai tapi serius, patungan lapangan di lokasi"',
-                          style: AppTypography.handwrittenNote,
-                        ),
-                        const SizedBox(height: 14),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 46,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryRed,
-                              foregroundColor: AppColors.textWhite,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            ),
-                            onPressed: () {
-                              // POST /api/v1/challenges/:id/responses
-                            },
-                            child: Text(
-                              _isOpponentTab ? 'Tantang' : 'Ajak Main',
-                              style: AppTypography.labelButton,
-                            ),
+              child: filteredChallenges.isEmpty
+                  ? Center(
+                      child: Text('Belum ada postingan pada kategori ini', style: AppTypography.bodyMedium),
+                    )
+                  : ListView.separated(
+                      itemCount: filteredChallenges.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 14),
+                      itemBuilder: (context, index) {
+                        final item = filteredChallenges[index];
+                        return Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: AppColors.cardSurface,
+                            borderRadius: BorderRadius.circular(22),
                           ),
-                        ),
-                      ],
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      item['schedule'] as String,
+                                      style: AppTypography.displayMedium.copyWith(fontSize: 20, color: AppColors.accentOrange),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.background,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      item['level'] as String,
+                                      style: const TextStyle(color: AppColors.textWhite, fontSize: 12, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                item['title'] as String,
+                                style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${item['sport']} · ${item['venue']}',
+                                style: AppTypography.bodyMedium,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '"${item['note']}"',
+                                style: AppTypography.handwrittenNote,
+                              ),
+                              const SizedBox(height: 14),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 46,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primaryRed,
+                                    foregroundColor: AppColors.textWhite,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  ),
+                                  onPressed: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          _isOpponentTab
+                                              ? 'Tantangan sparring terkirim!'
+                                              : 'Permintaan ajak main terkirim!',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: Text(
+                                    _isOpponentTab ? 'Tantang' : 'Ajak Main',
+                                    style: AppTypography.labelButton,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),
