@@ -1,228 +1,203 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/providers/app_state_provider.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../booking/presentation/eticket_screen.dart';
 import '../../booking/presentation/venue_detail_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userLoc = ref.watch(locationProvider);
+    final user = ref.watch(userProfileProvider);
+    final bookings = ref.watch(bookingListProvider);
+    final nearbyVenues = ref.watch(nearbyVenuesProvider);
 
-class _HomeScreenState extends State<HomeScreen> {
-  String _selectedSport = 'Semua';
-  final List<String> _sports = ['Semua', 'Futsal', 'Badminton', 'Mini Soccer', 'Basket', 'Padel'];
+    final nextBooking = bookings.isNotEmpty ? bookings.first : null;
+    final topVenue = nearbyVenues.isNotEmpty ? nearbyVenues.first : null;
 
-  @override
-  Widget build(BuildContext context) {
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Lokasi & Notifikasi
+            // Header Lokasi Dinamis
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('LOKASI SAAT INI', style: AppTypography.bodyMedium.copyWith(fontSize: 11)),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, color: AppColors.accentOrange, size: 16),
-                        const SizedBox(width: 4),
-                        Text('Surabaya, Jawa Timur', style: AppTypography.bodyLarge),
-                      ],
+                    Text('Halo, ${user.name}', style: AppTypography.bodyMedium),
+                    InkWell(
+                      onTap: () => ref.read(locationProvider.notifier).refreshLocation(),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.location_on, color: AppColors.accentOrange, size: 18),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${userLoc.cityName}, Indonesia',
+                            style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-                IconButton(
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppColors.cardSurface,
-                    minimumSize: const Size(44, 44), // Aksesibilitas min 44px
-                  ),
-                  icon: const Icon(Icons.notifications_none_rounded, color: AppColors.textWhite),
-                  onPressed: () {},
+                CircleAvatar(
+                  backgroundColor: AppColors.cardSurface,
+                  child: const Icon(Icons.notifications_none, color: AppColors.textWhite),
                 ),
               ],
             ),
             const SizedBox(height: 24),
 
-            // Hero Headline + Catatan Caveat
-            Text('GAS MAIN', style: AppTypography.displayLarge),
-            Row(
-              children: [
-                Text('HARI INI!', style: AppTypography.displayLarge.copyWith(color: AppColors.accentOrange)),
-                const SizedBox(width: 12),
-                Transform.rotate(
-                  angle: -0.05,
-                  child: Text('tanpa ribet chat admin~', style: AppTypography.handwrittenNote),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Search Bar
-            TextField(
-              style: const TextStyle(color: AppColors.textWhite),
-              decoration: InputDecoration(
-                hintText: 'Cari venue atau lapangan terdekat...',
-                hintStyle: AppTypography.bodyMedium,
-                prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
-                filled: true,
-                fillColor: AppColors.cardSurface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Filter Olahraga
-            SizedBox(
-              height: 44,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: _sports.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  final sport = _sports[index];
-                  final isSelected = _selectedSport == sport;
-                  return ChoiceChip(
-                    label: Text(sport),
-                    selected: isSelected,
-                    onSelected: (_) => setState(() => _selectedSport = sport),
-                    backgroundColor: AppColors.cardSurface,
-                    selectedColor: AppColors.primaryRed,
-                    labelStyle: TextStyle(
-                      color: isSelected ? AppColors.textWhite : AppColors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    side: BorderSide.none,
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Banner Aksi Cepat (Cari Lawan & Radar Komunitas)
+            // Kartu Hero Jadwal Terdekat (Dinamis dari bookingListProvider)
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [AppColors.primaryRed, AppColors.maroonGradient],
+                  colors: [AppColors.maroonGradient, AppColors.cardSurface],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
+              child: nextBooking == null
+                  ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('BUTUH LAWAN SPARRING?', style: AppTypography.displayMedium),
+                        Text('BELUM ADA JADWAL MAIN', style: AppTypography.displayMedium),
+                        const SizedBox(height: 6),
+                        Text('Yuk cari lapangan terdekat di ${userLoc.cityName}!', style: AppTypography.bodyMedium),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('JADWAL TERDEKAT', style: AppTypography.handwrittenNote),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryRed,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'Terkonfirmasi',
+                                style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(nextBooking['venueName'] as String, style: AppTypography.displayLarge),
                         const SizedBox(height: 4),
                         Text(
-                          '12 tim siap tanding di sekitar kamu malam ini.',
-                          style: AppTypography.bodyMedium.copyWith(color: AppColors.textWhite),
+                          '${nextBooking['dateText']} · ${nextBooking['timeSlot']}',
+                          style: AppTypography.bodyMedium,
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryRed,
+                              foregroundColor: AppColors.textWhite,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ETicketScreen(
+                                    bookingCode: nextBooking['bookingCode'] as String,
+                                    venueName: nextBooking['venueName'] as String,
+                                    courtName: nextBooking['courtName'] as String,
+                                    dateText: nextBooking['dateText'] as String,
+                                    timeSlot: nextBooking['timeSlot'] as String,
+                                    rentedEquipments: (nextBooking['rentedEquipments'] as List)
+                                        .map((e) => e.toString())
+                                        .toList(),
+                                    totalPaid: nextBooking['totalPaid'] as int,
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.qr_code_2),
+                            label: Text('Buka E-Tiket QR', style: AppTypography.labelButton),
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                  const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textWhite),
-                ],
-              ),
             ),
             const SizedBox(height: 24),
 
-            // Section Venue Terdekat
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('VENUE TERDEKAT', style: AppTypography.displayMedium),
-                Text('Radius 5 km', style: AppTypography.handwrittenNote),
-              ],
-            ),
+            // Rekomendasi Lapangan Terdekat Berdasarkan GPS
+            Text('TERDEKAT DARI LOKASIMU', style: AppTypography.displayMedium),
             const SizedBox(height: 12),
-
-            // Kartu Venue (Contoh data placeholder sesuai aturan PRD)
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const VenueDetailScreen()),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.cardSurface,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      height: 140,
-                      decoration: BoxDecoration(
-                        color: AppColors.maroonGradient,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.sports_soccer, size: 48, color: AppColors.textSecondary),
-                      ),
+            if (topVenue != null)
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => VenueDetailScreen(venue: topVenue),
                     ),
-                    const SizedBox(height: 14),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Arena Sport Center (Contoh)', style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w700)),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.background,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.star, color: AppColors.accentOrange, size: 14),
-                              SizedBox(width: 4),
-                              Text('4.8', style: TextStyle(color: AppColors.textWhite, fontWeight: FontWeight.bold, fontSize: 12)),
-                            ],
-                          ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardSurface,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          color: AppColors.maroonGradient,
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text('1.2 km · Futsal, Badminton · Buka 07:00 - 23:00 WIB', style: AppTypography.bodyMedium),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Mulai ${formatRupiah(120000)}/jam', style: AppTypography.statNumber.copyWith(fontSize: 20)),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryRed,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Text('Pesan', style: AppTypography.labelButton),
+                        child: const Icon(Icons.sports_soccer, color: AppColors.accentOrange, size: 36),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              topVenue['name'] as String,
+                              style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${topVenue['sport']} · ${topVenue['distanceKm']} km · ${topVenue['city']}',
+                              style: AppTypography.bodyMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Mulai ${formatRupiah(topVenue['price'] as int)}/jam',
+                              style: AppTypography.statNumber.copyWith(fontSize: 20),
+                            ),
+                          ],
                         ),
-                      ],
-                    )
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),

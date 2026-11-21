@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/providers/app_state_provider.dart';
 
-class CreateCommunityScreen extends StatefulWidget {
+class CreateCommunityScreen extends ConsumerStatefulWidget {
   const CreateCommunityScreen({super.key});
 
   @override
-  State<CreateCommunityScreen> createState() => _CreateCommunityScreenState();
+  ConsumerState<CreateCommunityScreen> createState() => _CreateCommunityScreenState();
 }
 
-class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
+class _CreateCommunityScreenState extends ConsumerState<CreateCommunityScreen> {
   final _nameController = TextEditingController();
   final _scheduleController = TextEditingController();
   final _descController = TextEditingController();
@@ -27,6 +29,8 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userLoc = ref.watch(locationProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -81,17 +85,6 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
             ),
             const SizedBox(height: 20),
 
-            Text('Deskripsi Singkat', style: AppTypography.bodyMedium),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _descController,
-              maxLines: 3,
-              style: const TextStyle(color: AppColors.textWhite),
-              decoration: _inputDecoration('Info patungan lapangan, level pemain, dll.'),
-            ),
-            const SizedBox(height: 20),
-
-            // Info Titik Lokasi Radar
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -104,7 +97,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Titik radar komunitas menggunakan lokasi GPS saat ini (Surabaya)',
+                      'Titik radar otomatis memakai koordinat GPS kamu saat ini (${userLoc.cityName})',
                       style: AppTypography.bodyMedium.copyWith(fontSize: 12),
                     ),
                   ),
@@ -123,6 +116,19 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 onPressed: () {
+                  ref.read(communityListProvider.notifier).addCommunity({
+                    'name': _nameController.text.isEmpty
+                        ? 'Komunitas $_selectedSport ${userLoc.cityName}'
+                        : _nameController.text,
+                    'sport': _selectedSport,
+                    'schedule': _scheduleController.text.isEmpty
+                        ? 'Tiap Sabtu, 19:00 WIB'
+                        : _scheduleController.text,
+                    'members': 1,
+                    'lat': userLoc.latitude,
+                    'lng': userLoc.longitude,
+                  });
+
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Komunitas berhasil dibuat & muncul di radar 3 km!')),
                   );

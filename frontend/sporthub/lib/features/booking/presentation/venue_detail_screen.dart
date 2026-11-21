@@ -7,25 +7,30 @@ import '../../../core/utils/currency_formatter.dart';
 import 'eticket_screen.dart';
 
 class VenueDetailScreen extends ConsumerStatefulWidget {
-  const VenueDetailScreen({super.key});
+  final DataMap venue;
+
+  const VenueDetailScreen({super.key, required this.venue});
 
   @override
   ConsumerState<VenueDetailScreen> createState() => _VenueDetailScreenState();
 }
 
 class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
-  final int _courtPricePerHour = 120000;
   final _timeSlots = ['18:00', '19:00', '20:00', '21:00', '22:00'];
-  final _bookedSlots = {'19:00'};
-  final _selectedSlots = {'20:00'};
+  final _selectedSlots = <String>{};
+  late DataMapList _equipments;
 
-  final _equipments = [
-    {'id': 'eq-1', 'name': 'Bola Futsal Match', 'price': 25000, 'stock': 4, 'qty': 0},
-    {'id': 'eq-2', 'name': 'Rompi Tim (1 Set)', 'price': 20000, 'stock': 3, 'qty': 0},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    final rawEq = widget.venue['equipments'] as List;
+    _equipments = rawEq.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  int get _pricePerHour => widget.venue['price'] as int;
 
   int get _totalAmount {
-    final courtTotal = _selectedSlots.length * _courtPricePerHour;
+    final courtTotal = _selectedSlots.length * _pricePerHour;
     final eqTotal = _equipments.fold<int>(
       0,
       (sum, item) => sum + ((item['price'] as int) * (item['qty'] as int)),
@@ -35,6 +40,10 @@ class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bookedList = (widget.venue['bookedSlots'] as List).map((e) => e.toString()).toSet();
+    final venueName = widget.venue['name'] as String;
+    final courtName = widget.venue['courtName'] as String;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -47,9 +56,12 @@ class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('ARENA SPORT CENTER', style: AppTypography.displayLarge),
+            Text(venueName.toUpperCase(), style: AppTypography.displayLarge),
             const SizedBox(height: 4),
-            Text('Jl. Raya Darmo No. 12, Surabaya · Jam Operasional 07:00 - 23:00 WIB', style: AppTypography.bodyMedium),
+            Text(
+              '${widget.venue['address']} · ${widget.venue['distanceKm']} km · ${widget.venue['hours']}',
+              style: AppTypography.bodyMedium,
+            ),
             const SizedBox(height: 24),
 
             Text('PILIH LAPANGAN', style: AppTypography.displayMedium),
@@ -64,13 +76,15 @@ class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Lapangan A · Vinyl Standar FIFA', style: AppTypography.bodyLarge),
-                      const SizedBox(height: 4),
-                      Text('${formatRupiah(_courtPricePerHour)} / jam', style: AppTypography.bodyMedium),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(courtName, style: AppTypography.bodyLarge),
+                        const SizedBox(height: 4),
+                        Text('${formatRupiah(_pricePerHour)} / jam', style: AppTypography.bodyMedium),
+                      ],
+                    ),
                   ),
                   const Icon(Icons.check_circle, color: AppColors.primaryRed),
                 ],
@@ -90,7 +104,7 @@ class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
               spacing: 10,
               runSpacing: 10,
               children: _timeSlots.map((slot) {
-                final isBooked = _bookedSlots.contains(slot);
+                final isBooked = bookedList.contains(slot);
                 final isSelected = _selectedSlots.contains(slot);
 
                 return GestureDetector(
@@ -147,12 +161,14 @@ class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(eq['name'] as String, style: AppTypography.bodyLarge),
-                        Text('${formatRupiah(eq['price'] as int)} · Stok: ${eq['stock']}', style: AppTypography.bodyMedium),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(eq['name'] as String, style: AppTypography.bodyLarge),
+                          Text('${formatRupiah(eq['price'] as int)} · Stok: ${eq['stock']}', style: AppTypography.bodyMedium),
+                        ],
+                      ),
                     ),
                     Row(
                       children: [
@@ -216,9 +232,9 @@ class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
 
                         ref.read(bookingListProvider.notifier).addBooking({
                           'bookingCode': code,
-                          'venueName': 'ARENA SPORT CENTER',
-                          'courtName': 'Lapangan A · Vinyl Standar FIFA',
-                          'dateText': 'Jumat, 20 Nov 2026',
+                          'venueName': venueName.toUpperCase(),
+                          'courtName': courtName,
+                          'dateText': 'Hari Ini, 20 Nov 2026',
                           'timeSlot': timeText,
                           'rentedEquipments': selectedItems,
                           'totalPaid': _totalAmount,
@@ -229,6 +245,8 @@ class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
                           MaterialPageRoute(
                             builder: (_) => ETicketScreen(
                               bookingCode: code,
+                              venueName: venueName.toUpperCase(),
+                              courtName: courtName,
                               timeSlot: timeText,
                               rentedEquipments: selectedItems,
                               totalPaid: _totalAmount,

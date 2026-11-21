@@ -1,60 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/providers/app_state_provider.dart';
 import '../../../core/utils/currency_formatter.dart';
 import 'venue_detail_screen.dart';
 
-class VenueListScreen extends StatefulWidget {
+class VenueListScreen extends ConsumerStatefulWidget {
   const VenueListScreen({super.key});
 
   @override
-  State<VenueListScreen> createState() => _VenueListScreenState();
+  ConsumerState<VenueListScreen> createState() => _VenueListScreenState();
 }
 
-class _VenueListScreenState extends State<VenueListScreen> {
+class _VenueListScreenState extends ConsumerState<VenueListScreen> {
   String _selectedSport = 'Semua';
   String _searchQuery = '';
 
   final _sports = ['Semua', 'Futsal', 'Badminton', 'Mini Soccer', 'Basket', 'Padel'];
 
-  final _venues = [
-    {
-      'name': 'Arena Sport Center',
-      'sport': 'Futsal',
-      'distance': '1.2 km',
-      'rating': '4.8',
-      'hours': '07:00 - 23:00 WIB',
-      'price': 120000,
-    },
-    {
-      'name': 'GOR Bintang Timur',
-      'sport': 'Badminton',
-      'distance': '2.0 km',
-      'rating': '4.7',
-      'hours': '08:00 - 22:00 WIB',
-      'price': 65000,
-    },
-    {
-      'name': 'Darmo Mini Soccer Park',
-      'sport': 'Mini Soccer',
-      'distance': '3.4 km',
-      'rating': '4.9',
-      'hours': '06:00 - 24:00 WIB',
-      'price': 450000,
-    },
-    {
-      'name': 'Surabaya Padel Club',
-      'sport': 'Padel',
-      'distance': '4.1 km',
-      'rating': '4.9',
-      'hours': '07:00 - 23:00 WIB',
-      'price': 280000,
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final filteredVenues = _venues.where((v) {
+    final userLoc = ref.watch(locationProvider);
+    final venues = ref.watch(nearbyVenuesProvider);
+
+    final filteredVenues = venues.where((v) {
       final matchesSport = _selectedSport == 'Semua' || v['sport'] == _selectedSport;
       final name = (v['name'] as String).toLowerCase();
       final matchesQuery = name.contains(_searchQuery.toLowerCase());
@@ -67,12 +37,50 @@ class _VenueListScreenState extends State<VenueListScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('DAFTAR LAPANGAN', style: AppTypography.displayLarge),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('LAPANGAN TERDEKAT', style: AppTypography.displayLarge),
+                InkWell(
+                  onTap: () => ref.read(locationProvider.notifier).refreshLocation(),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardSurface,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          userLoc.isGpsActive ? Icons.my_location : Icons.location_off,
+                          color: AppColors.accentOrange,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          userLoc.cityName,
+                          style: const TextStyle(
+                            color: AppColors.textWhite,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 4),
-            Text('Temukan venue & lapangan terdekat di sekitarmu', style: AppTypography.bodyMedium),
+            Text(
+              userLoc.isGpsActive
+                  ? 'Diurutkan otomatis dari jarak terdekat posisimu'
+                  : 'Aktifkan GPS HP untuk jarak akurat di sekitarmu',
+              style: AppTypography.bodyMedium,
+            ),
             const SizedBox(height: 16),
 
-            // Search Bar
             TextField(
               onChanged: (val) => setState(() => _searchQuery = val),
               style: const TextStyle(color: AppColors.textWhite),
@@ -90,7 +98,6 @@ class _VenueListScreenState extends State<VenueListScreen> {
             ),
             const SizedBox(height: 14),
 
-            // Filter Olahraga
             SizedBox(
               height: 42,
               child: ListView.separated(
@@ -118,7 +125,6 @@ class _VenueListScreenState extends State<VenueListScreen> {
             ),
             const SizedBox(height: 16),
 
-            // List Venue
             Expanded(
               child: filteredVenues.isEmpty
                   ? Center(
@@ -133,7 +139,9 @@ class _VenueListScreenState extends State<VenueListScreen> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const VenueDetailScreen()),
+                              MaterialPageRoute(
+                                builder: (_) => VenueDetailScreen(venue: venue),
+                              ),
                             );
                           },
                           child: Container(
@@ -182,7 +190,7 @@ class _VenueListScreenState extends State<VenueListScreen> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        '${venue['sport']} · ${venue['distance']} · ${venue['hours']}',
+                                        '${venue['sport']} · ${venue['distanceKm']} km · ${venue['city']}',
                                         style: AppTypography.bodyMedium.copyWith(fontSize: 12),
                                       ),
                                       const SizedBox(height: 8),
